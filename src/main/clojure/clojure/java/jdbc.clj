@@ -42,7 +42,8 @@ http://clojure-doc.org/articles/ecosystem/java_jdbc/home.html"}
   clojure.java.jdbc
   (:require [clojure.set :as set]
             [clojure.string :as str]
-            [clojure.walk :as walk])
+            [clojure.walk :as walk]
+            [clojure.core.async :as async])
   (:import (java.net URI)
            (java.sql BatchUpdateException DriverManager
                      PreparedStatement ResultSet ResultSetMetaData
@@ -476,6 +477,30 @@ http://clojure-doc.org/articles/ecosystem/java_jdbc/home.html"}
         (comp keyword identifiers)
         :else
         identifiers))
+
+(defn result-set-stream-to-channel
+  ([rs ch] (result-set-stream-to-channel rs ch {}))
+  ([^ResultSet rs ch {:keys [as-arrays? identifiers keywordize?
+                          qualifier read-columns]
+                   :or {identifiers str/lower-case
+                        keywordize? true
+                        read-columns dft-read-columns}}]
+   (let [rsmeta (.getMetaData rs)
+         idxs (range 1 (inc (.getColumnCount rsmeta)))
+         col-name-fn (if (= :cols-as-is as-arrays?) identity make-cols-unique)
+         keys (into [] (comp (map (fn [^Integer i] (.getColumnLabel rsmeta i)))
+                             col-name-fn
+                             (map (make-identifier-fn identifiers
+                                                      qualifier
+                                                      keywordize?)))
+                    idxs)
+         row-values (fn [] (read-columns rs rsmeta idxs))
+         records (fn thisfn []
+                   (loop []
+                     (when (.next rs)
+                       (when (async/>!! ch (zipmap keys (row-values)))
+                         (recur)))))]
+     (records))))
 
 (defn result-set-seq
   "Creates and returns a lazy sequence of maps corresponding to the rows in the
