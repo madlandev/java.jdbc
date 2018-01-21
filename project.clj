@@ -2,7 +2,7 @@
 ;; develop and test java.jdbc locally. The pom.xml file is the
 ;; "system of record" as far as the project version is concerned.
 
-(defproject org.clojure/java.jdbc "0.7.3"
+(defproject org.clojure/java.jdbc "0.7.3-MADLAN"
   :description "A low-level Clojure wrapper for JDBC-based access to databases."
   :parent [org.clojure/pom.contrib "0.1.2"]
   :url "https://github.com/clojure/java.jdbc"
@@ -29,6 +29,7 @@
                  [org.xerial/sqlite-jdbc "3.16.1"]
                  ;; Assumes Java 8; there's a .jre7 version as well:
                  [com.microsoft.sqlserver/mssql-jdbc "6.2.2.jre8"]]
+  :plugins [[s3-wagon-private "1.3.0"]]
 
   :profiles {:1.7 {:dependencies [[org.clojure/clojure "1.7.0"]]}
              :1.8 {:dependencies [[org.clojure/clojure "1.8.0"]]}
